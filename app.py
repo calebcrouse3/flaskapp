@@ -1,28 +1,33 @@
-from flask import Flask
-from markupsafe import escape
-from flask import render_template
+from flask import Flask, render_template, request
+import pickle 
 
 app = Flask(__name__)
 
-# to run the app
-# flask app --debug run
+model = pickle.load(open('expense_model.pkl','rb')) #read mode
 
-@app.route('/user/<username>')
-def show_user_profile(username):
-    # show the user profile for that user
-    return f'User {escape(username)}'
+@app.route("/")
+def home():
+    return render_template('index.html')
 
-@app.route('/post/<int:post_id>')
-def show_post(post_id):
-    # show the post with the given id, the id is an integer
-    return f'Post {post_id}'
+@app.route("/predict", methods=['GET','POST'])
+def predict():
+    if request.method == 'POST':
+        #access the data from form
 
-@app.route('/path/<path:subpath>')
-def show_subpath(subpath):
-    # show the subpath after /path/
-    return f'Subpath {escape(subpath)}'
+        ## Age
+        age = int(request.form["age"])
+        bmi = int(request.form["bmi"])
+        children = int(request.form["children"])
+        Sex = int(request.form["Sex"])
+        Smoker = int(request.form["Smoker"])
+        Region = int(request.form["Region"])
 
-@app.route('/hello/')
-@app.route('/hello/<name>')
-def hello(name=None):
-    return render_template('hello.html', name=name)
+        #get prediction
+        input_cols = [[age, bmi, children, Sex, Smoker, Region]]
+        prediction = model.predict(input_cols)
+        output = round(prediction[0], 2)
+        
+        return render_template("index.html", prediction_text='Your predicted annual Healthcare Expense is $ {}'.format(output))
+
+if __name__ == "__main__":
+    app.run(debug=True)
